@@ -24,6 +24,7 @@ import java.util.List;
 
 
 public class App {
+    private static final double OBS_PROB = 0.2;
 
     public static void main(String[] args) {
 
@@ -93,7 +94,7 @@ public class App {
         int width = 20 + rand.nextInt(41);   // 20–60
         int height = 20 + rand.nextInt(41);
 
-        Grid grid = MapGenerator.generate(width, height, 0.1); //ObsProb
+        Grid grid = MapGenerator.generate(width, height, OBS_PROB);
 
         Point start = getRandomFreeCell(grid, rand);
         Point goal = start;
@@ -192,7 +193,7 @@ public class App {
         int width = 20 + rand.nextInt(41);
         int height = 20 + rand.nextInt(41);
 
-        Grid grid = MapGenerator.generate(width, height, 0.2); //ObsProb
+        Grid grid = MapGenerator.generate(width, height, OBS_PROB);
 
         Point start = getRandomFreeCell(grid, rand);
         Point goal = start;
