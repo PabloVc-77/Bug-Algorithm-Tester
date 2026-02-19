@@ -111,7 +111,7 @@ public class App {
             System.out.println("Optimal path length: " + optimalPath.size());
         }
 
-        BugAlgorithm bug = new SimpleBug();
+        BugAlgorithm bug = new Bug2();
         bug.init(grid, start, goal);
 
         Simulator simulator = new Simulator(bug);
@@ -210,8 +210,8 @@ public class App {
             System.out.println("Optimal path length: " + optimalPath.size());
         }
 
-        BugAlgorithm bug1 = new SimpleBug();
-        BugAlgorithm bug2 = new SimpleBug2(); // replace later with another algorithm
+        BugAlgorithm bug1 = new Bug1();
+        BugAlgorithm bug2 = new Bug2(); // replace later with another algorithm
 
         bug1.init(grid, start, goal);
         bug2.init(grid, start, goal);
