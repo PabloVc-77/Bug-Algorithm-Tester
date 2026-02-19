@@ -32,11 +32,8 @@ public class App {
 
         switch (mode) {
             case DEBUG:
-                runDebugMode();
-                break;
-
             case COMPARE:
-                runCompareMode();
+                runGuiMode(mode);
                 break;
 
             case MARATHON:
@@ -83,110 +80,9 @@ public class App {
         System.out.println("  java main.App -m   Marathon test mode");
     }
 
-    private static void runDebugMode() {
-        System.out.println("Running DEBUG mode");
+    private static void runGuiMode(RunMode mode) {
 
-        System.out.println("Program started");
-
-
-        Random rand = new Random();
-
-        int width = 20 + rand.nextInt(41);   // 20–60
-        int height = 20 + rand.nextInt(41);
-
-        Grid grid = MapGenerator.generate(width, height, OBS_PROB);
-
-        Point start = getRandomFreeCell(grid, rand);
-        Point goal = start;
-
-        List<Point> optimalPath = null;
-        while (goal.equals(start) || (optimalPath != null && optimalPath.size() < 10)) {
-            goal = getRandomFreeCell(grid, rand);
-            optimalPath = BFSPathfinder.findPath(grid, start, goal);
-        }
-
-        if (optimalPath == null) {
-            System.out.println("No optimal path found.");
-        } else {
-            System.out.println("Optimal path length: " + optimalPath.size());
-        }
-
-        BugAlgorithm bug = new Bug2();
-        bug.init(grid, start, goal);
-
-        Simulator simulator = new Simulator(bug);
-
-        GridPanel panel = new GridPanel(grid, bug, goal, optimalPath);
-
-        JFrame frame = new JFrame("Bug Tester");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-        JPanel controls = new JPanel();
-        JButton backButton = new JButton("<<");
-        JButton pauseButton = new JButton("Pause");
-        JButton resetButton = new JButton("Reset");
-
-        controls.add(backButton);
-        controls.add(pauseButton);
-        controls.add(resetButton);
-
-        frame.setLayout(new BorderLayout());
-        frame.add(panel, BorderLayout.CENTER);
-        frame.add(controls, BorderLayout.SOUTH);
-
-
-        Timer timer = new Timer(200, e -> {
-            simulator.step();
-            panel.repaint();
-        });
-        timer.start();
-
-        final boolean[] paused = {false};
-
-        pauseButton.addActionListener(e -> {
-            paused[0] = !paused[0];
-            if (paused[0]) {
-                timer.stop();
-                pauseButton.setText("Resume");
-            } else {
-                timer.start();
-                pauseButton.setText("Pause");
-            }
-        });
-
-        backButton.addActionListener(e -> {
-            // Step back
-            int current = bug.getCurrentStepIndex();
-            int step = current - 1;
-            
-            if (step >= 0) {
-                if (!paused[0]) {
-                    timer.stop();
-                    pauseButton.setText("Resume");
-                }
-
-                 bug.resetToStep(step);
-                 panel.repaint();
-            }
-        });
-
-        resetButton.addActionListener(e -> {
-            timer.stop();
-            bug.resetToStep(0);
-            
-            paused[0] = true;
-            pauseButton.setText("Resume");
-            panel.repaint();
-        });
-
-        frame.pack();
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
-    }
-
-    private static void runCompareMode() {
-
-        System.out.println("Running COMPARE mode");
+        System.out.println("Running " + mode + " mode");
 
         Random rand = new Random();
 
@@ -210,22 +106,55 @@ public class App {
             System.out.println("Optimal path length: " + optimalPath.size());
         }
 
+        // -----------------------
+        // CREATE BUGS
+        // -----------------------
+
         BugAlgorithm bug1 = new Bug1();
-        BugAlgorithm bug2 = new Bug2(); // replace later with another algorithm
-
         bug1.init(grid, start, goal);
-        bug2.init(grid, start, goal);
 
-        CompareSimulator simulator = new CompareSimulator(bug1, bug2);
+        final BugAlgorithm bug2;
 
-        ComparePanel panel = new ComparePanel(grid, bug1, bug2, optimalPath, goal);
+        if (mode == RunMode.COMPARE) {
+            bug2 = new Bug2();
+            bug2.init(grid, start, goal);
+        } else {
+            bug2 = null;
+        }
 
-        JFrame frame = new JFrame("Compare Mode");
+        // -----------------------
+        // CREATE SIMULATOR
+        // -----------------------
+
+        final Simulator simulator;
+        final CompareSimulator compareSimulator;
+
+        if (mode == RunMode.DEBUG) {
+            simulator = new Simulator(bug1);
+            compareSimulator = null;
+        } else {
+            compareSimulator = new CompareSimulator(bug1, bug2);
+            simulator = null;
+        }
+
+        // -----------------------
+        // CREATE PANEL
+        // -----------------------
+
+        JFrame frame = new JFrame(mode == RunMode.DEBUG ? "Bug Debug Mode" : "Bug Compare Mode");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.add(panel);
-        frame.pack();
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
+
+        JPanel panel;
+
+        if (mode == RunMode.DEBUG) {
+            panel = new GridPanel(grid, bug1, goal, optimalPath);
+        } else {
+            panel = new ComparePanel(grid, bug1, bug2, optimalPath, goal);
+        }
+
+        // -----------------------
+        // CONTROLS
+        // -----------------------
 
         JPanel controls = new JPanel();
         JButton backButton = new JButton("<<");
@@ -240,8 +169,18 @@ public class App {
         frame.add(panel, BorderLayout.CENTER);
         frame.add(controls, BorderLayout.SOUTH);
 
+        // -----------------------
+        // TIMER
+        // -----------------------
+
         Timer timer = new Timer(150, e -> {
-            simulator.step();
+
+            if (mode == RunMode.DEBUG) {
+                simulator.step();
+            } else {
+                compareSimulator.step();
+            }
+
             panel.repaint();
         });
 
@@ -249,8 +188,13 @@ public class App {
 
         final boolean[] paused = {false};
 
+        // -----------------------
+        // PAUSE
+        // -----------------------
+
         pauseButton.addActionListener(e -> {
             paused[0] = !paused[0];
+
             if (paused[0]) {
                 timer.stop();
                 pauseButton.setText("Resume");
@@ -260,43 +204,56 @@ public class App {
             }
         });
 
+        // -----------------------
+        // BACK BUTTON
+        // -----------------------
+
         backButton.addActionListener(e -> {
-            // Step back
-            int current1 = bug1.getCurrentStepIndex();
-            int current2 = bug2.getCurrentStepIndex();
-            int step1 = current1 - 1;
-            int step2 = current2 - 1;
-            
+
+            if (!paused[0]) {
+                timer.stop();
+                pauseButton.setText("Resume");
+                paused[0] = true;
+            }
+
+            int step1 = bug1.getCurrentStepIndex() - 1;
             if (step1 >= 0) {
-                if (!paused[0]) {
-                    timer.stop();
-                    pauseButton.setText("Resume");
-                }
-
-                 bug1.resetToStep(step1);
-                 panel.repaint();
+                bug1.resetToStep(step1);
             }
 
-            if (step2 >= 0) {
-                if (!paused[0]) {
-                    timer.stop();
-                    pauseButton.setText("Resume");
+            if (mode == RunMode.COMPARE && bug2 != null) {
+                int step2 = bug2.getCurrentStepIndex() - 1;
+                if (step2 >= 0) {
+                    bug2.resetToStep(step2);
                 }
-
-                 bug2.resetToStep(step2);
-                 panel.repaint();
             }
-        });
 
-        resetButton.addActionListener(e -> {
-            timer.stop();
-            bug1.resetToStep(0);
-            bug2.resetToStep(0);
-            
-            paused[0] = true;
-            pauseButton.setText("Resume");
             panel.repaint();
         });
+
+        // -----------------------
+        // RESET
+        // -----------------------
+
+        resetButton.addActionListener(e -> {
+
+            timer.stop();
+            paused[0] = true;
+            pauseButton.setText("Resume");
+
+            bug1.resetToStep(0);
+
+            if (mode == RunMode.COMPARE && bug2 != null) {
+                bug2.resetToStep(0);
+            }
+
+            panel.repaint();
+        });
+
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
     }
+
 
 }
