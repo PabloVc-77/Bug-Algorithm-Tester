@@ -26,14 +26,19 @@ import java.util.List;
 public class App {
     private static final double OBS_PROB = 0.2;
 
+    private static class RunConfig {
+        RunMode mode;
+        Long seed; // nullable
+    }
+
     public static void main(String[] args) {
 
-        RunMode mode = parseArguments(args);
+        RunConfig config = parseArguments(args);
 
-        switch (mode) {
+        switch (config.mode) {
             case DEBUG:
             case COMPARE:
-                runGuiMode(mode);
+                runGuiMode(config);
                 break;
 
             case MARATHON:
@@ -45,24 +50,40 @@ public class App {
         }
     }
 
-    private static RunMode parseArguments(String[] args) {
+    private static RunConfig parseArguments(String[] args) {
 
-        if (args.length == 0) return RunMode.UNKNOWN;
+        RunConfig config = new RunConfig();
+        config.mode = RunMode.UNKNOWN;
+        config.seed = null;
 
-        switch (args[0]) {
-            case "-d":
-                return RunMode.DEBUG;
+        for (int i = 0; i < args.length; i++) {
 
-            case "-c":
-                return RunMode.COMPARE;
+            switch (args[i]) {
 
-            case "-m":
-                return RunMode.MARATHON;
+                case "-d":
+                    config.mode = RunMode.DEBUG;
+                    break;
 
-            default:
-                return RunMode.UNKNOWN;
+                case "-c":
+                    config.mode = RunMode.COMPARE;
+                    break;
+
+                case "-m":
+                    config.mode = RunMode.MARATHON;
+                    break;
+
+                case "-seed":
+                    if (i + 1 < args.length) {
+                        config.seed = Long.parseLong(args[i + 1]);
+                        i++;
+                    }
+                    break;
+            }
         }
+
+        return config;
     }
+
     private static Point getRandomFreeCell(Grid grid, Random rand) {
         int x, y;
 
@@ -80,16 +101,28 @@ public class App {
         System.out.println("  java main.App -m   Marathon test mode");
     }
 
-    private static void runGuiMode(RunMode mode) {
+    private static void runGuiMode(RunConfig config) {
 
+        RunMode mode = config.mode;
         System.out.println("Running " + mode + " mode");
 
-        Random rand = new Random();
+        Random rand;
+        long generatedSeed = 0;
+
+        if (config.seed != null) {
+            rand = new Random(config.seed);
+            System.out.println("Using seed: " + config.seed);
+        } else {
+            generatedSeed = System.currentTimeMillis();
+            rand = new Random(generatedSeed);
+            System.out.println("Generated seed: " + generatedSeed);
+        }
+
 
         int width = 20 + rand.nextInt(41);
         int height = 20 + rand.nextInt(41);
 
-        Grid grid = MapGenerator.generate(width, height, OBS_PROB);
+        Grid grid = MapGenerator.generate(width, height, OBS_PROB, rand);
 
         Point start = getRandomFreeCell(grid, rand);
         Point goal = start;
@@ -143,6 +176,7 @@ public class App {
 
         JFrame frame = new JFrame(mode == RunMode.DEBUG ? "Bug Debug Mode" : "Bug Compare Mode");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setTitle(frame.getTitle() + " | Seed: " + (config.seed == null ? generatedSeed : config.seed));
 
         JPanel panel;
 

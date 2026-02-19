@@ -4,10 +4,9 @@ import java.util.Random;
 
 public class MapGenerator {
 
-    public static Grid generate(int width, int height, double obstacleProbability) {
+    public static Grid generate(int width, int height, double obstacleProbability, Random rand) {
 
         Grid grid = new Grid(width, height);
-        Random rand = new Random();
 
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
@@ -19,4 +18,5 @@ public class MapGenerator {
 
         return grid;
     }
+
 }
