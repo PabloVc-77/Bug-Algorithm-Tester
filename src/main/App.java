@@ -28,11 +28,10 @@ import main.bugStats.BugStats;
 import java.awt.Dimension;
 
 import javax.swing.JSplitPane;
-import java.awt.Dimension;
 
 
 public class App {
-    private static final double OBS_PROB = 0.2;
+    private static final double OBS_PROB = 0.01;
 
     private static class RunConfig {
         RunMode mode;
@@ -196,17 +195,26 @@ public class App {
             panel = new ComparePanel(grid, bug1, bug2, optimalPath, goal);
         }
 
-        JPanel statsPanel = new JPanel();
-        statsPanel.setLayout(new GridLayout(0, 4)); // metric | bug1 | bug2 | diff
+        JPanel statsPanel = new JPanel(new BorderLayout());
 
-        statsPanel.add(new JLabel("Metric"));
-        statsPanel.add(new JLabel("Bug 1"));
-        statsPanel.add(new JLabel("Bug 2"));
-        statsPanel.add(new JLabel("Δ"));
+        JPanel statsContent = new JPanel(new GridLayout(0, 4, 10, 10));
+        statsContent.setBorder(javax.swing.BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel titleLabel = new JLabel("Statistics", JLabel.CENTER);
+        titleLabel.setFont(titleLabel.getFont().deriveFont(18f));
+        titleLabel.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 0, 10, 0));
+
+        statsPanel.add(titleLabel, BorderLayout.NORTH);
+        statsPanel.add(statsContent, BorderLayout.CENTER);
+
+        addHeader(statsContent, "Metric");
+        addHeader(statsContent, "Bug 1");
+        addHeader(statsContent, "Bug 2");
+        addHeader(statsContent, "Diff");
 
         JPanel statsContainer = new JPanel(new BorderLayout());
-        statsContainer.add(statsPanel, BorderLayout.NORTH);
-        statsContainer.setPreferredSize(new Dimension(250, 0));
+        statsContainer.add(statsPanel, BorderLayout.CENTER);
+        statsContainer.setPreferredSize(new Dimension(300, 0));
 
 
         // -----------------------
@@ -244,12 +252,12 @@ public class App {
 
         Runnable updateStatsUI = () -> {
 
-            statsPanel.removeAll();
+            statsContent.removeAll();
 
-            statsPanel.add(new JLabel("Metric"));
-            statsPanel.add(new JLabel("Bug 1"));
-            statsPanel.add(new JLabel("Bug 2"));
-            statsPanel.add(new JLabel("Δ"));
+            addHeader(statsContent, "Metric");
+            addHeader(statsContent, "Bug 1");
+            addHeader(statsContent, "Bug 2");
+            addHeader(statsContent, "Diff");
 
             BugStats s1 = buildStats(bug1, optimalLength);
 
@@ -258,17 +266,21 @@ public class App {
                 s2 = buildStats(bug2, optimalLength);
             }
 
-            addStatRow(statsPanel, "Path Length",
+            addStatRow(statsContent, "Path Length",
                     s1.getPathLength(),
                     s2 == null ? "-" : s2.getPathLength());
 
-            addStatRow(statsPanel, "Over Optimal",
+            addStatRow(statsContent, "Over Optimal",
                     s1.getDiffFromOptimal(),
                     s2 == null ? "-" : s2.getDiffFromOptimal());
 
-            addStatRow(statsPanel, "Efficiency %",
+            addStatRow(statsContent, "Efficiency %",
                     String.format("%.1f", s1.getEfficiency()),
                     s2 == null ? "-" : String.format("%.1f", s2.getEfficiency()));
+
+            addStatRow(statsContent, "Finished",
+                    s1.isFinished() ? "YES" : "NO",
+                    s2 == null ? "-" : (s2.isFinished() ? "YES" : "NO"));
 
             statsPanel.revalidate();
             statsPanel.repaint();
@@ -278,6 +290,8 @@ public class App {
         // -----------------------
         // TIMER
         // -----------------------
+
+        final boolean[] paused = {false};
 
         Timer timer = new Timer(150, e -> {
 
@@ -289,11 +303,20 @@ public class App {
 
             panel.repaint();
             updateStatsUI.run();
+
+            boolean bug1Done = bug1.hasFinished();
+            boolean bug2Done = (mode == RunMode.COMPARE && bug2 != null)
+                                ? bug2.hasFinished()
+                                : true; // in DEBUG, treat as finished
+
+            if (bug1Done && bug2Done) {
+                ((Timer) e.getSource()).stop();
+                pauseButton.setText("Finished");
+                paused[0] = true;
+            }
         });
 
         timer.start();
-
-        final boolean[] paused = {false};
 
         // -----------------------
         // PAUSE
@@ -371,6 +394,7 @@ public class App {
         stats.setPathLength(pathLength);
         stats.setOptimalLength(optimalLength);
         stats.setDiffFromOptimal(pathLength - optimalLength);
+        stats.setFinished(bug.hasFinished());
 
         if (pathLength > 0) {
             double efficiency = ((double) optimalLength / pathLength) * 100.0;
@@ -383,17 +407,48 @@ public class App {
     }
     private static void addStatRow(JPanel panel, String name, Object v1, Object v2) {
 
-        panel.add(new JLabel(name));
-        panel.add(new JLabel(String.valueOf(v1)));
-        panel.add(new JLabel(String.valueOf(v2)));
+        JLabel nameLabel = new JLabel(name);
+        nameLabel.setFont(nameLabel.getFont().deriveFont(14f));
+
+        JLabel bug1Label = new JLabel(String.valueOf(v1), JLabel.CENTER);
+        bug1Label.setFont(bug1Label.getFont().deriveFont(16f));
+
+        JLabel bug2Label = new JLabel(String.valueOf(v2), JLabel.CENTER);
+        bug2Label.setFont(bug2Label.getFont().deriveFont(16f));
+
+        JLabel diffLabel;
+
+        // 🎨 Special handling for YES/NO coloring
+        if ("YES".equals(v1) || "NO".equals(v1)) {
+            bug1Label.setForeground("YES".equals(v1)
+                    ? new java.awt.Color(0, 150, 0)
+                    : java.awt.Color.RED);
+        }
+
+        if ("YES".equals(v2) || "NO".equals(v2)) {
+            bug2Label.setForeground("YES".equals(v2)
+                    ? new java.awt.Color(0, 150, 0)
+                    : java.awt.Color.RED);
+        }
 
         if (v1 instanceof Number && v2 instanceof Number) {
             double diff = ((Number) v2).doubleValue()
                     - ((Number) v1).doubleValue();
-            panel.add(new JLabel(String.format("%.2f", diff)));
+            diffLabel = new JLabel(String.format("%.2f", diff), JLabel.CENTER);
         } else {
-            panel.add(new JLabel("-"));
+            diffLabel = new JLabel("-", JLabel.CENTER);
         }
-    }
 
+        diffLabel.setFont(diffLabel.getFont().deriveFont(16f));
+
+        panel.add(nameLabel);
+        panel.add(bug1Label);
+        panel.add(bug2Label);
+        panel.add(diffLabel);
+    }
+    private static void addHeader(JPanel panel, String text) {
+        JLabel label = new JLabel(text, JLabel.CENTER);
+        label.setFont(label.getFont().deriveFont(java.awt.Font.BOLD, 14f));
+        panel.add(label);
+    }
 }

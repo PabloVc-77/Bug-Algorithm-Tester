@@ -16,4 +16,14 @@ public class BugStats {
     public int getOptimalLength() {return this.optimalLength;}
     public int getDiffFromOptimal() {return this.diffFromOptimal;}
     public double getEfficiency() {return this.efficiency;}
+
+    private boolean finished;
+
+    public boolean isFinished() {
+        return finished;
+    }
+
+    public void setFinished(boolean finished) {
+        this.finished = finished;
+    }
 }
