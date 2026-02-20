@@ -26,4 +26,10 @@ public class BugStats {
     public void setFinished(boolean finished) {
         this.finished = finished;
     }
+
+    private boolean givenUp;
+
+    public boolean hasGivenUp() {return givenUp;}
+
+    public void setGivenUp(Boolean g) {this.givenUp = g;}
 }

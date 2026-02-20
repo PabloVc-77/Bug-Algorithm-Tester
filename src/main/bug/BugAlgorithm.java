@@ -2,6 +2,7 @@ package main.bug;
 
 import java.awt.Point;
 import java.util.List;
+
 import main.grid.Grid;
 
 public interface BugAlgorithm {
@@ -19,4 +20,14 @@ public interface BugAlgorithm {
     void resetToStep(int step);
 
     int getCurrentStepIndex();
+
+    BugState getState();
+
+    boolean hasGivenUp();
+
+    public enum BugState {
+        RUNNING,
+        FINISHED,
+        GAVE_UP
+    }
 }

@@ -15,6 +15,27 @@ public abstract class AbstractBug implements BugAlgorithm {
     protected int currentStepIndex = 0;
     protected boolean finished = false;
 
+    private BugState state = BugState.RUNNING;
+
+    @Override
+    public BugState getState() {
+        return state;
+    }
+
+    protected void setState(BugState state) {
+        this.state = state;
+    }
+
+    @Override
+    public boolean hasFinished() {
+        return state == BugState.FINISHED;
+    }
+
+    @Override
+    public boolean hasGivenUp() {
+        return state == BugState.GAVE_UP;
+    }
+
     @Override
     public void init(Grid grid, Point start, Point goal) {
         this.grid = grid;
@@ -39,6 +60,7 @@ public abstract class AbstractBug implements BugAlgorithm {
         Point current = history.get(currentStepIndex);
 
         if (current.equals(goal)) {
+            state = BugState.FINISHED;
             finished = true;
             return current;
         }
@@ -58,11 +80,6 @@ public abstract class AbstractBug implements BugAlgorithm {
     }
 
     protected abstract Point moveTo(Point p);
-
-    @Override
-    public boolean hasFinished() {
-        return finished;
-    }
 
     @Override
     public Point getCurrentPosition() {

@@ -152,13 +152,13 @@ public class App {
         // CREATE BUGS
         // -----------------------
 
-        BugAlgorithm bug1 = new Bug1();
+        BugAlgorithm bug1 = new Bug2();
         bug1.init(grid, start, goal);
 
         final BugAlgorithm bug2;
 
         if (mode == RunMode.COMPARE) {
-            bug2 = new Bug2();
+            bug2 = new Bug1();
             bug2.init(grid, start, goal);
         } else {
             bug2 = null;
@@ -282,6 +282,10 @@ public class App {
                     s1.isFinished() ? "YES" : "NO",
                     s2 == null ? "-" : (s2.isFinished() ? "YES" : "NO"));
 
+            addStatRow(statsContent, "State",
+                formatState(s1),
+                s2 == null ? "-" : formatState(s2));
+
             statsPanel.revalidate();
             statsPanel.repaint();
         };
@@ -304,10 +308,10 @@ public class App {
             panel.repaint();
             updateStatsUI.run();
 
-            boolean bug1Done = bug1.hasFinished();
+            boolean bug1Done = bug1.hasFinished() || bug1.hasGivenUp();
             boolean bug2Done = (mode == RunMode.COMPARE && bug2 != null)
-                                ? bug2.hasFinished()
-                                : true; // in DEBUG, treat as finished
+                    ? (bug2.hasFinished() || bug2.hasGivenUp())
+                    : true;
 
             if (bug1Done && bug2Done) {
                 ((Timer) e.getSource()).stop();
@@ -395,6 +399,7 @@ public class App {
         stats.setOptimalLength(optimalLength);
         stats.setDiffFromOptimal(pathLength - optimalLength);
         stats.setFinished(bug.hasFinished());
+        stats.setGivenUp(bug.hasGivenUp());
 
         if (pathLength > 0) {
             double efficiency = ((double) optimalLength / pathLength) * 100.0;
@@ -419,17 +424,8 @@ public class App {
         JLabel diffLabel;
 
         // 🎨 Special handling for YES/NO coloring
-        if ("YES".equals(v1) || "NO".equals(v1)) {
-            bug1Label.setForeground("YES".equals(v1)
-                    ? new java.awt.Color(0, 150, 0)
-                    : java.awt.Color.RED);
-        }
-
-        if ("YES".equals(v2) || "NO".equals(v2)) {
-            bug2Label.setForeground("YES".equals(v2)
-                    ? new java.awt.Color(0, 150, 0)
-                    : java.awt.Color.RED);
-        }
+        paint(v1, bug1Label);
+        paint(v2, bug2Label);
 
         if (v1 instanceof Number && v2 instanceof Number) {
             double diff = ((Number) v2).doubleValue()
@@ -446,9 +442,31 @@ public class App {
         panel.add(bug2Label);
         panel.add(diffLabel);
     }
+    private static void paint(Object v, JLabel label) {
+        if ("YES".equals(v) || "NO".equals(v)) {
+            label.setForeground("YES".equals(v)
+                    ? new java.awt.Color(0, 150, 0)
+                    : java.awt.Color.RED);
+        }
+
+        if ("FINISHED".equals(v)) {
+            label.setForeground(new java.awt.Color(0,150,0));
+        }
+        if ("GAVE UP".equals(v)) {
+            label.setForeground(java.awt.Color.RED);
+        }
+        if ("RUNNING".equals(v)) {
+            label.setForeground(java.awt.Color.ORANGE);
+        }
+    }
     private static void addHeader(JPanel panel, String text) {
         JLabel label = new JLabel(text, JLabel.CENTER);
         label.setFont(label.getFont().deriveFont(java.awt.Font.BOLD, 14f));
         panel.add(label);
+    }
+    private static String formatState(BugStats stats) {
+        if (stats.isFinished()) return "FINISHED";
+        if (stats.hasGivenUp()) return "GAVE UP";
+        return "RUNNING";
     }
 }
