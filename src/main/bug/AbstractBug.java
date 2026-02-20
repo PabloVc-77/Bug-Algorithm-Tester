@@ -6,14 +6,14 @@ import java.util.List;
 
 import main.grid.Grid;
 
-public class SimpleBug implements BugAlgorithm {
+public abstract class AbstractBug implements BugAlgorithm {
 
-    private Grid grid;
-    private Point goal;
+    protected Grid grid;
+    protected Point goal;
 
-    private List<Point> history = new ArrayList<>();
-    private int currentStepIndex = 0;
-    private boolean finished = false;
+    protected List<Point> history = new ArrayList<>();
+    protected int currentStepIndex = 0;
+    protected boolean finished = false;
 
     @Override
     public void init(Grid grid, Point start, Point goal) {
@@ -43,23 +43,21 @@ public class SimpleBug implements BugAlgorithm {
             return current;
         }
 
-        int dx = Integer.compare(goal.x, current.x);
-        int dy = Integer.compare(goal.y, current.y);
+        Point next = moveTo(goal);
 
-        int newX = current.x + dx;
-        int newY = current.y + dy;
-
-        Point next = new Point(current);
-
-        if (!grid.isObstacle(newX, newY)) {
-            next.setLocation(newX, newY);
+        if (grid.isObstacle(next.x, next.y)) {
+            next = current;
         }
 
-        history.add(next);
-        currentStepIndex++;
+        if(!current.equals(next)) {
+            history.add(next);
+            currentStepIndex++;
+        }
 
         return next;
     }
+
+    protected abstract Point moveTo(Point p);
 
     @Override
     public boolean hasFinished() {
@@ -88,5 +86,4 @@ public class SimpleBug implements BugAlgorithm {
     public int getCurrentStepIndex() {
         return currentStepIndex;
     }
-
 }

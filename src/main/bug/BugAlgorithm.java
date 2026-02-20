@@ -19,5 +19,4 @@ public interface BugAlgorithm {
     void resetToStep(int step);
 
     int getCurrentStepIndex();
-
 }

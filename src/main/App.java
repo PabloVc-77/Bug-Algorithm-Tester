@@ -1,6 +1,7 @@
 package main;
 
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.Timer;
 
 import main.grid.Grid;
@@ -21,6 +22,13 @@ import java.awt.BorderLayout;
 
 import main.pathfinding.BFSPathfinder;
 import java.util.List;
+
+import java.awt.GridLayout;
+import main.bugStats.BugStats;
+import java.awt.Dimension;
+
+import javax.swing.JSplitPane;
+import java.awt.Dimension;
 
 
 public class App {
@@ -133,10 +141,12 @@ public class App {
             optimalPath = BFSPathfinder.findPath(grid, start, goal);
         }
 
+        final int optimalLength = (optimalPath == null) ? 0 : optimalPath.size();
+
         if (optimalPath == null) {
             System.out.println("No optimal path found.");
         } else {
-            System.out.println("Optimal path length: " + optimalPath.size());
+            System.out.println("Optimal path length: " + optimalLength);
         }
 
         // -----------------------
@@ -186,6 +196,19 @@ public class App {
             panel = new ComparePanel(grid, bug1, bug2, optimalPath, goal);
         }
 
+        JPanel statsPanel = new JPanel();
+        statsPanel.setLayout(new GridLayout(0, 4)); // metric | bug1 | bug2 | diff
+
+        statsPanel.add(new JLabel("Metric"));
+        statsPanel.add(new JLabel("Bug 1"));
+        statsPanel.add(new JLabel("Bug 2"));
+        statsPanel.add(new JLabel("Δ"));
+
+        JPanel statsContainer = new JPanel(new BorderLayout());
+        statsContainer.add(statsPanel, BorderLayout.NORTH);
+        statsContainer.setPreferredSize(new Dimension(250, 0));
+
+
         // -----------------------
         // CONTROLS
         // -----------------------
@@ -199,9 +222,58 @@ public class App {
         controls.add(pauseButton);
         controls.add(resetButton);
 
-        frame.setLayout(new BorderLayout());
-        frame.add(panel, BorderLayout.CENTER);
+       frame.setLayout(new BorderLayout());
+
+        JSplitPane splitPane = new JSplitPane(
+                JSplitPane.HORIZONTAL_SPLIT,
+                panel,            // izquierda (mapa)
+                statsContainer    // derecha (stats)
+        );
+
+        splitPane.setResizeWeight(1.0);   // el mapa tiene prioridad
+        splitPane.setDividerSize(5);
+        splitPane.setContinuousLayout(true);
+
+        // Opcional: posición inicial del divisor
+        splitPane.setDividerLocation(800);
+
+        frame.add(splitPane, BorderLayout.CENTER);
         frame.add(controls, BorderLayout.SOUTH);
+
+
+
+        Runnable updateStatsUI = () -> {
+
+            statsPanel.removeAll();
+
+            statsPanel.add(new JLabel("Metric"));
+            statsPanel.add(new JLabel("Bug 1"));
+            statsPanel.add(new JLabel("Bug 2"));
+            statsPanel.add(new JLabel("Δ"));
+
+            BugStats s1 = buildStats(bug1, optimalLength);
+
+            BugStats s2 = null;
+            if (mode == RunMode.COMPARE && bug2 != null) {
+                s2 = buildStats(bug2, optimalLength);
+            }
+
+            addStatRow(statsPanel, "Path Length",
+                    s1.getPathLength(),
+                    s2 == null ? "-" : s2.getPathLength());
+
+            addStatRow(statsPanel, "Over Optimal",
+                    s1.getDiffFromOptimal(),
+                    s2 == null ? "-" : s2.getDiffFromOptimal());
+
+            addStatRow(statsPanel, "Efficiency %",
+                    String.format("%.1f", s1.getEfficiency()),
+                    s2 == null ? "-" : String.format("%.1f", s2.getEfficiency()));
+
+            statsPanel.revalidate();
+            statsPanel.repaint();
+        };
+
 
         // -----------------------
         // TIMER
@@ -216,6 +288,7 @@ public class App {
             }
 
             panel.repaint();
+            updateStatsUI.run();
         });
 
         timer.start();
@@ -289,5 +362,38 @@ public class App {
         frame.setVisible(true);
     }
 
+    private static BugStats buildStats(BugAlgorithm bug, int optimalLength) {
+
+        BugStats stats = new BugStats();
+
+        int pathLength = bug.getHistory() == null ? 0 : bug.getHistory().size();
+
+        stats.setPathLength(pathLength);
+        stats.setOptimalLength(optimalLength);
+        stats.setDiffFromOptimal(pathLength - optimalLength);
+
+        if (pathLength > 0) {
+            double efficiency = ((double) optimalLength / pathLength) * 100.0;
+            stats.setEfficiency(efficiency);
+        } else {
+            stats.setEfficiency(0.0);
+        }
+
+        return stats;
+    }
+    private static void addStatRow(JPanel panel, String name, Object v1, Object v2) {
+
+        panel.add(new JLabel(name));
+        panel.add(new JLabel(String.valueOf(v1)));
+        panel.add(new JLabel(String.valueOf(v2)));
+
+        if (v1 instanceof Number && v2 instanceof Number) {
+            double diff = ((Number) v2).doubleValue()
+                    - ((Number) v1).doubleValue();
+            panel.add(new JLabel(String.format("%.2f", diff)));
+        } else {
+            panel.add(new JLabel("-"));
+        }
+    }
 
 }
