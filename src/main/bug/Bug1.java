@@ -2,6 +2,10 @@ package main.bug;
 
 import java.awt.Point;
 
+// ============================
+// This should be the *OLD* Bug
+// ============================
+
 public class Bug1 extends AbstractBug{
 
     @Override

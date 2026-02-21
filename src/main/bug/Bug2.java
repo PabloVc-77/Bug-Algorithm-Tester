@@ -3,6 +3,10 @@ package main.bug;
 import java.awt.Point;
 import java.util.Random;
 
+// =============================
+// This shoud be the *NEWER* Bug
+// =============================
+
 public class Bug2 extends AbstractBug {
 
     public Point moveTo(Point goal) {
