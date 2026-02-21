@@ -60,6 +60,10 @@ public class App {
                 else {runMarathonMode(config.amount);}
                 break;
 
+            case BUILD:
+                new MapCreator();
+                break;
+
             default:
                 printUsage();
         }
@@ -105,6 +109,10 @@ public class App {
                         config.seed = Long.parseLong(args[i + 1]);
                         i++;
                     }
+                    break;
+                
+                case "-b":
+                    config.mode = RunMode.BUILD;
                     break;
             }
         }
