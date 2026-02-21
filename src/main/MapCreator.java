@@ -4,9 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 
-import main.grid.*;
-import main.simulation.Simulator;
-import main.bug.*;
+import java.io.*;
 
 public class MapCreator extends JFrame {
 
@@ -131,18 +129,16 @@ public class MapCreator extends JFrame {
 
         JPanel panel = new JPanel(new FlowLayout());
 
+        JButton saveBtn = new JButton("Save Map");
         JButton clearBtn = new JButton("Clear");
-        JButton runBtn = new JButton("Run Bug");
         JButton exitBtn = new JButton("Exit");
 
+        saveBtn.addActionListener(e -> saveMap());
         clearBtn.addActionListener(e -> clearGrid());
-
-        runBtn.addActionListener(e -> runBug());
-
         exitBtn.addActionListener(e -> dispose());
 
+        panel.add(saveBtn);
         panel.add(clearBtn);
-        panel.add(runBtn);
         panel.add(exitBtn);
 
         return panel;
@@ -208,30 +204,6 @@ public class MapCreator extends JFrame {
         goalLabel.setText("Goal: " + (goalFound ? "✓" : "Not set"));
     }
 
-    private void runBug() {
-
-        // You must adapt this if your Map constructor differs
-        Grid map = new Grid(rows, cols);
-        Point start = new Point();
-        Point end = new Point();
-
-        for (int r = 0; r < rows; r++)
-            for (int c = 0; c < cols; c++) {
-
-                if (grid[r][c] == CellType.WALL)
-                    map.setObstacle(r, c, true);
-
-                if (grid[r][c] == CellType.START)
-                    start = new Point(r, c);
-
-                if (grid[r][c] == CellType.GOAL)
-                    end = new Point(r, c);
-            }
-        
-        BugAlgorithm bug = new Bug2();
-        Simulator simulator = new Simulator(bug); // uses your existing simulator
-    }
-
     private class GridPanel extends JPanel {
 
         @Override
@@ -267,6 +239,52 @@ public class MapCreator extends JFrame {
                     g.drawRect(c * cellSize, r * cellSize, cellSize, cellSize);
                 }
             }
+        }
+    }
+
+    // MAP SAVING
+
+    private void saveMap() {
+
+        String name = JOptionPane.showInputDialog(this, "Enter map name:");
+
+        if (name == null || name.trim().isEmpty()) {
+            return;
+        }
+
+        File dir = new File("maps");
+        if (!dir.exists()) {
+            dir.mkdir();
+        }
+
+        File file = new File(dir, name + ".map");
+
+        try (PrintWriter writer = new PrintWriter(file)) {
+
+            writer.println(rows + " " + cols);
+
+            for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < cols; c++) {
+
+                    char symbol = '.';
+
+                    switch (grid[r][c]) {
+                        case EMPTY: symbol = '.'; break;
+                        case WALL: symbol = '#'; break;
+                        case START: symbol = 'S'; break;
+                        case GOAL: symbol = 'G'; break;
+                    }
+
+                    writer.print(symbol);
+                }
+                writer.println();
+            }
+
+            JOptionPane.showMessageDialog(this, "Map saved as: " + name);
+
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error saving map.");
         }
     }
 }

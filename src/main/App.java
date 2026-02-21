@@ -43,6 +43,7 @@ public class App {
         Long seed; // nullable
         int amount;
         boolean marathonCompare;
+        String mapName;
     }
 
     public static void main(String[] args) {
@@ -74,6 +75,9 @@ public class App {
         RunConfig config = new RunConfig();
         config.mode = RunMode.UNKNOWN;
         config.seed = null;
+        config.amount = -1;
+        config.marathonCompare = false;
+        config.mapName = null;
 
         for (int i = 0; i < args.length; i++) {
 
@@ -92,21 +96,24 @@ public class App {
                     if (i + 1 < args.length) {
                         config.amount = Integer.parseInt(args[i + 1]);
                         i++;
-                    } else {
-                        config.amount = -1;
                     }
 
                     if(i + 1 < args.length && args[i + 1].equals("-c")) {
                         config.marathonCompare = true;
                         i++;
-                    } else {
-                        config.marathonCompare = false;
                     }
                     break;
 
                 case "-seed":
                     if (i + 1 < args.length) {
                         config.seed = Long.parseLong(args[i + 1]);
+                        i++;
+                    }
+                    break;
+                
+                case "-map":
+                    if (i + 1 < args.length) {
+                        config.mapName = args[i + 1];
                         i++;
                     }
                     break;
@@ -146,31 +153,58 @@ public class App {
         RunMode mode = config.mode;
         System.out.println("Running " + mode + " mode");
 
+        Grid grid = null;
+        Point start = null;
+        Point goal = null;
+
         Random rand;
+
         long generatedSeed = 0;
 
-        if (config.seed != null) {
-            rand = new Random(config.seed);
-            System.out.println("Using seed: " + config.seed);
-        } else {
-            generatedSeed = System.currentTimeMillis();
-            rand = new Random(generatedSeed);
-            System.out.println("Generated seed: " + generatedSeed);
+        List<Point> optimalPath = null;
+        boolean flag = true;
+        if (config.mapName != null) {
+
+            try {
+                flag = false;
+                MapFileLoader.LoadedMap loaded = MapFileLoader.load(config.mapName);
+
+                grid = loaded.grid;
+                start = loaded.start;
+                goal = loaded.goal;
+                optimalPath = BFSPathfinder.findPath(grid, start, goal);
+
+                System.out.println("Loaded map: " + config.mapName);
+
+            } catch (Exception e) {
+                System.out.println("Failed to load map. Falling back to random.");
+                flag = true;
+            }
+
         }
 
+        if(flag) {
+            if (config.seed != null) {
+                rand = new Random(config.seed);
+                System.out.println("Using seed: " + config.seed);
+            } else {
+                generatedSeed = System.currentTimeMillis();
+                rand = new Random(generatedSeed);
+                System.out.println("Generated seed: " + generatedSeed);
+            }
 
-        int width = 20 + rand.nextInt(41);
-        int height = 20 + rand.nextInt(41);
+            int width = 20 + rand.nextInt(41);
+            int height = 20 + rand.nextInt(41);
+            
+            grid = MapGenerator.generate(width, height, OBS_PROB, rand);
 
-        Grid grid = MapGenerator.generate(width, height, OBS_PROB, rand);
+            start = getRandomFreeCell(grid, rand);
+            goal = start;
 
-        Point start = getRandomFreeCell(grid, rand);
-        Point goal = start;
-
-        List<Point> optimalPath = null;
-        while (goal.equals(start) || (optimalPath != null && optimalPath.size() < 10)) {
-            goal = getRandomFreeCell(grid, rand);
-            optimalPath = BFSPathfinder.findPath(grid, start, goal);
+            while (goal.equals(start) || (optimalPath != null && optimalPath.size() < 10)) {
+                goal = getRandomFreeCell(grid, rand);
+                optimalPath = BFSPathfinder.findPath(grid, start, goal);
+            }
         }
 
         final int optimalLength = (optimalPath == null) ? 0 : optimalPath.size();
