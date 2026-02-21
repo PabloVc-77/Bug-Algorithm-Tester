@@ -1,7 +1,6 @@
 package main.bug;
 
 import java.awt.Point;
-import java.util.Random;
 
 // =============================
 // This shoud be the *NEWER* Bug
@@ -9,16 +8,15 @@ import java.util.Random;
 
 public class Bug2 extends AbstractBug {
 
+    @Override
     public Point moveTo(Point goal) {
         Point current = history.get(currentStepIndex);
-        Random random = new Random();
-        int value = random.nextInt(3) - 1;  // Generates 0,1,2 → shift to -1,0,1
-        random = new Random();
-        int value2 = random.nextInt(3) - 1;
+        int dx = Integer.compare(goal.x, current.x);
+        int dy = Integer.compare(goal.y, current.y);
 
-        int newX = current.x + value;
-        int newY = current.y + value2;
+        int newX = current.x + dx;
+        int newY = current.y + dy;
 
-        return new Point(newX, newY);    
+        return new Point(newX, newY);
     }
 }
