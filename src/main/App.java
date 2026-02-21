@@ -32,6 +32,8 @@ import javax.swing.JSplitPane;
 
 public class App {
     private static final double OBS_PROB = 0.01;
+    private static final int NORMAL_DELAY = 200;
+    private static final int FAST_DELAY = 20;
 
     private static class RunConfig {
         RunMode mode;
@@ -208,8 +210,8 @@ public class App {
         statsPanel.add(statsContent, BorderLayout.CENTER);
 
         addHeader(statsContent, "Metric");
-        addHeader(statsContent, "Bug 1");
         addHeader(statsContent, "Bug 2");
+        addHeader(statsContent, "Bug 1");
         addHeader(statsContent, "Diff");
 
         JPanel statsContainer = new JPanel(new BorderLayout());
@@ -223,12 +225,16 @@ public class App {
 
         JPanel controls = new JPanel();
         JButton backButton = new JButton("<<");
+        JButton forwardButton = new JButton(">>");
         JButton pauseButton = new JButton("Pause");
         JButton resetButton = new JButton("Reset");
+        JButton fastForwardButton = new JButton("x10");
 
         controls.add(backButton);
+        controls.add(forwardButton);
         controls.add(pauseButton);
         controls.add(resetButton);
+        controls.add(fastForwardButton);
 
        frame.setLayout(new BorderLayout());
 
@@ -255,8 +261,8 @@ public class App {
             statsContent.removeAll();
 
             addHeader(statsContent, "Metric");
-            addHeader(statsContent, "Bug 1");
             addHeader(statsContent, "Bug 2");
+            addHeader(statsContent, "Bug 1");
             addHeader(statsContent, "Diff");
 
             BugStats s1 = buildStats(bug1, optimalLength);
@@ -277,11 +283,7 @@ public class App {
             addStatRow(statsContent, "Efficiency %",
                     String.format("%.1f", s1.getEfficiency()),
                     s2 == null ? "-" : String.format("%.1f", s2.getEfficiency()));
-
-            addStatRow(statsContent, "Finished",
-                    s1.isFinished() ? "YES" : "NO",
-                    s2 == null ? "-" : (s2.isFinished() ? "YES" : "NO"));
-
+                    
             addStatRow(statsContent, "State",
                 formatState(s1),
                 s2 == null ? "-" : formatState(s2));
@@ -297,7 +299,7 @@ public class App {
 
         final boolean[] paused = {false};
 
-        Timer timer = new Timer(150, e -> {
+        Timer timer = new Timer(NORMAL_DELAY, e -> {
 
             if (mode == RunMode.DEBUG) {
                 simulator.step();
@@ -335,6 +337,40 @@ public class App {
             } else {
                 timer.start();
                 pauseButton.setText("Pause");
+            }
+        });
+
+        // -----------------------
+        // FORWARD BUTTON
+        // -----------------------
+
+        forwardButton.addActionListener(e -> {
+
+            if (!paused[0]) {
+                timer.stop();
+                pauseButton.setText("Resume");
+                paused[0] = true;
+            }
+
+            // Run next step
+            if (mode == RunMode.DEBUG) {
+                simulator.step();
+            } else {
+                compareSimulator.step();
+            }
+
+            panel.repaint();
+            updateStatsUI.run();
+
+            boolean bug1Done = bug1.hasFinished() || bug1.hasGivenUp();
+            boolean bug2Done = (mode == RunMode.COMPARE && bug2 != null)
+                    ? (bug2.hasFinished() || bug2.hasGivenUp())
+                    : true;
+
+            if (bug1Done && bug2Done) {
+                timer.stop();
+                pauseButton.setText("Finished");
+                paused[0] = true;
             }
         });
 
@@ -384,6 +420,27 @@ public class App {
             panel.repaint();
         });
 
+        // -----------------------
+        // FAST FORWARD
+        // -----------------------
+
+        fastForwardButton.addActionListener(e -> {
+
+            if (!timer.isRunning()) {
+                timer.start();
+                pauseButton.setText("Pause");
+                paused[0] = false;
+            }
+
+            if (timer.getDelay() == NORMAL_DELAY) {
+                timer.setDelay(FAST_DELAY);
+                fastForwardButton.setText("x1");
+            } else {
+                timer.setDelay(NORMAL_DELAY);
+                fastForwardButton.setText("x10");
+            }
+        });
+
         frame.pack();
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
@@ -428,8 +485,8 @@ public class App {
         paint(v2, bug2Label);
 
         if (v1 instanceof Number && v2 instanceof Number) {
-            double diff = ((Number) v2).doubleValue()
-                    - ((Number) v1).doubleValue();
+            double diff = ((Number) v1).doubleValue()
+                    - ((Number) v2).doubleValue();
             diffLabel = new JLabel(String.format("%.2f", diff), JLabel.CENTER);
         } else {
             diffLabel = new JLabel("-", JLabel.CENTER);
@@ -443,12 +500,6 @@ public class App {
         panel.add(diffLabel);
     }
     private static void paint(Object v, JLabel label) {
-        if ("YES".equals(v) || "NO".equals(v)) {
-            label.setForeground("YES".equals(v)
-                    ? new java.awt.Color(0, 150, 0)
-                    : java.awt.Color.RED);
-        }
-
         if ("FINISHED".equals(v)) {
             label.setForeground(new java.awt.Color(0,150,0));
         }
@@ -469,4 +520,10 @@ public class App {
         if (stats.hasGivenUp()) return "GAVE UP";
         return "RUNNING";
     }
+
+    //********************************************* */
+    //              MARATHON CODE
+    //********************************************* */
+
+    
 }

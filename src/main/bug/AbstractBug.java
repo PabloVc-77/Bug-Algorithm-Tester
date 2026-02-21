@@ -96,6 +96,7 @@ public abstract class AbstractBug implements BugAlgorithm {
         if (step >= 0 && step < history.size()) {
             currentStepIndex = step;
             finished = false;
+            state = BugState.RUNNING;
         }
     }
 
