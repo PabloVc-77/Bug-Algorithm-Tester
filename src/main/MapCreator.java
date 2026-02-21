@@ -4,14 +4,12 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 
-import java.io.*;
-
 public class MapCreator extends JFrame {
 
-    private final int rows = 20;
-    private final int cols = 20;
+    private int rows = 20;
+    private int cols = 20;
 
-    private final CellType[][] grid;
+    private CellType[][] grid;
 
     private GridPanel gridPanel;
 
@@ -19,6 +17,10 @@ public class MapCreator extends JFrame {
     private JLabel goalLabel;
 
     private CellType currentTool = CellType.WALL;
+
+    private JSpinner rowSpinner;
+    private JSpinner colSpinner;
+    private JLabel sizeLabel;
 
     private enum CellType {
         EMPTY,
@@ -34,7 +36,7 @@ public class MapCreator extends JFrame {
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        grid = new CellType[rows][cols];
+        initializeGrid(rows, cols);
 
         for (int r = 0; r < rows; r++)
             for (int c = 0; c < cols; c++)
@@ -44,8 +46,29 @@ public class MapCreator extends JFrame {
         setVisible(true);
     }
 
+    private void initializeGrid(int newRows, int newCols) {
+
+        CellType[][] newGrid = new CellType[newRows][newCols];
+
+        for (int r = 0; r < newRows; r++) {
+            for (int c = 0; c < newCols; c++) {
+
+                if (grid != null && r < rows && c < cols) {
+                    newGrid[r][c] = grid[r][c]; // preserve old cells
+                } else {
+                    newGrid[r][c] = CellType.EMPTY;
+                }
+            }
+        }
+
+        rows = newRows;
+        cols = newCols;
+        grid = newGrid;
+    }
+
     private void setupUI() {
 
+        add(createTopPanel(), BorderLayout.NORTH);
         add(createToolPanel(), BorderLayout.WEST);
         add(createGridPanel(), BorderLayout.CENTER);
         add(createInfoPanel(), BorderLayout.EAST);
@@ -63,6 +86,11 @@ public class MapCreator extends JFrame {
         JToggleButton startBtn = new JToggleButton("Start");
         JToggleButton goalBtn = new JToggleButton("Goal");
         JToggleButton eraseBtn = new JToggleButton("Eraser");
+
+        wallBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        startBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        goalBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        eraseBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
 
         ButtonGroup group = new ButtonGroup();
         group.add(wallBtn);
@@ -111,7 +139,7 @@ public class MapCreator extends JFrame {
         panel.setPreferredSize(new Dimension(180, 0));
         panel.setBorder(BorderFactory.createTitledBorder("Info"));
 
-        JLabel sizeLabel = new JLabel("Size: " + rows + " x " + cols);
+        sizeLabel = new JLabel("Size: " + rows + " x " + cols);
         startLabel = new JLabel("Start: Not set");
         goalLabel = new JLabel("Goal: Not set");
 
@@ -125,19 +153,50 @@ public class MapCreator extends JFrame {
         return panel;
     }
 
+    private JPanel createTopPanel() {
+
+        JPanel panel = new JPanel(new FlowLayout());
+
+        rowSpinner = new JSpinner(new SpinnerNumberModel(rows, 5, 60, 1));
+        colSpinner = new JSpinner(new SpinnerNumberModel(cols, 5, 60, 1));
+
+        JButton resizeBtn = new JButton("Resize");
+
+        resizeBtn.addActionListener(e -> {
+
+            int newRows = (int) rowSpinner.getValue();
+            int newCols = (int) colSpinner.getValue();
+
+            initializeGrid(newRows, newCols);
+
+            sizeLabel.setText("Size: " + rows + " x " + cols);
+
+            updateInfo();
+            gridPanel.repaint();
+        });
+
+        panel.add(new JLabel("Rows:"));
+        panel.add(rowSpinner);
+
+        panel.add(new JLabel("Cols:"));
+        panel.add(colSpinner);
+
+        panel.add(resizeBtn);
+
+        return panel;
+    }
+
     private JPanel createBottomPanel() {
 
         JPanel panel = new JPanel(new FlowLayout());
 
-        JButton saveBtn = new JButton("Save Map");
         JButton clearBtn = new JButton("Clear");
         JButton exitBtn = new JButton("Exit");
 
-        saveBtn.addActionListener(e -> saveMap());
         clearBtn.addActionListener(e -> clearGrid());
+
         exitBtn.addActionListener(e -> dispose());
 
-        panel.add(saveBtn);
         panel.add(clearBtn);
         panel.add(exitBtn);
 
@@ -239,52 +298,6 @@ public class MapCreator extends JFrame {
                     g.drawRect(c * cellSize, r * cellSize, cellSize, cellSize);
                 }
             }
-        }
-    }
-
-    // MAP SAVING
-
-    private void saveMap() {
-
-        String name = JOptionPane.showInputDialog(this, "Enter map name:");
-
-        if (name == null || name.trim().isEmpty()) {
-            return;
-        }
-
-        File dir = new File("maps");
-        if (!dir.exists()) {
-            dir.mkdir();
-        }
-
-        File file = new File(dir, name + ".map");
-
-        try (PrintWriter writer = new PrintWriter(file)) {
-
-            writer.println(rows + " " + cols);
-
-            for (int r = 0; r < rows; r++) {
-                for (int c = 0; c < cols; c++) {
-
-                    char symbol = '.';
-
-                    switch (grid[r][c]) {
-                        case EMPTY: symbol = '.'; break;
-                        case WALL: symbol = '#'; break;
-                        case START: symbol = 'S'; break;
-                        case GOAL: symbol = 'G'; break;
-                    }
-
-                    writer.print(symbol);
-                }
-                writer.println();
-            }
-
-            JOptionPane.showMessageDialog(this, "Map saved as: " + name);
-
-        } catch (IOException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error saving map.");
         }
     }
 }
