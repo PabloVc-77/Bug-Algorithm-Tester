@@ -142,10 +142,9 @@ public class App {
         System.out.println("               MAIN BUG WILL BE Bug2.java                   ");
         System.out.println("============================================================");
         System.out.println("Usage:");
-        System.out.println("  java main.App -d           |  Debug mode (visual)");
-        System.out.println("  java main.App -c           |  Compare two bugs");
-        System.out.println("  java main.App -m amount    |  Marathon test mode");
-        System.out.println("  java main.App -m amount -c |  Marathon test & Compare mode");
+        System.out.println("  java main.App -d [-map <nameMap> | -seed <seed>]          |  Debug mode (visual)");
+        System.out.println("  java main.App -c [-map <nameMap> | -seed <seed>]          |  Compare two bugs");
+        System.out.println("  java main.App -m <amount> [-c (add comparation Mode)]     |  Marathon test mode");
     }
 
     private static void runGuiMode(RunConfig config) {
