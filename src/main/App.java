@@ -9,6 +9,8 @@ import main.grid.MapGenerator;
 import main.bug.*;
 import main.config.RunMode;
 import main.simulation.CompareSimulator;
+import main.simulation.MarathonResult;
+import main.simulation.MarathonRunner;
 import main.simulation.Simulator;
 import main.ui.ComparePanel;
 import main.ui.GridPanel;
@@ -28,6 +30,7 @@ import main.bugStats.BugStats;
 import java.awt.Dimension;
 
 import javax.swing.JSplitPane;
+import main.ui.MarathonConsoleView;
 
 
 public class App {
@@ -38,6 +41,8 @@ public class App {
     private static class RunConfig {
         RunMode mode;
         Long seed; // nullable
+        int amount;
+        boolean marathonCompare;
     }
 
     public static void main(String[] args) {
@@ -51,7 +56,8 @@ public class App {
                 break;
 
             case MARATHON:
-                //runMarathonMode();
+                if(config.marathonCompare) {runMarathonCompareMode(config.amount);}
+                else {runMarathonMode(config.amount);}
                 break;
 
             default:
@@ -79,6 +85,19 @@ public class App {
 
                 case "-m":
                     config.mode = RunMode.MARATHON;
+                    if (i + 1 < args.length) {
+                        config.amount = Integer.parseInt(args[i + 1]);
+                        i++;
+                    } else {
+                        config.amount = -1;
+                    }
+
+                    if(i + 1 < args.length && args[i + 1].equals("-c")) {
+                        config.marathonCompare = true;
+                        i++;
+                    } else {
+                        config.marathonCompare = false;
+                    }
                     break;
 
                 case "-seed":
@@ -104,10 +123,14 @@ public class App {
         return new Point(x, y);
     }
     private static void printUsage() {
+        System.out.println("============================================================");
+        System.out.println("               MAIN BUG WILL BE Bug2.java                   ");
+        System.out.println("============================================================");
         System.out.println("Usage:");
-        System.out.println("  java main.App -d   Debug mode (visual)");
-        System.out.println("  java main.App -c   Compare two bugs");
-        System.out.println("  java main.App -m   Marathon test mode");
+        System.out.println("  java main.App -d           |  Debug mode (visual)");
+        System.out.println("  java main.App -c           |  Compare two bugs");
+        System.out.println("  java main.App -m amount    |  Marathon test mode");
+        System.out.println("  java main.App -m amount -c |  Marathon test & Compare mode");
     }
 
     private static void runGuiMode(RunConfig config) {
@@ -525,5 +548,34 @@ public class App {
     //              MARATHON CODE
     //********************************************* */
 
-    
+    private static void runMarathonMode(int amount) {
+
+        System.out.println("Starting Marathon Mode...");
+
+        MarathonRunner runner = new MarathonRunner();
+
+        MarathonResult result = runner.run(
+                (amount <= 0) ? 0 : amount,
+                () -> new Bug2(),
+                false,
+                null
+        );
+
+        MarathonConsoleView.show(result);
+    }
+
+    private static void runMarathonCompareMode(int amount) {
+        System.out.println("Starting Marathon Compare Mode...");
+
+        MarathonRunner runner = new MarathonRunner();
+
+        MarathonResult result = runner.run(
+                (amount <= 0) ? 0 : amount,
+                () -> new Bug2(),
+                true,
+                () -> new Bug1()
+        );
+
+        MarathonConsoleView.show(result);
+    }
 }

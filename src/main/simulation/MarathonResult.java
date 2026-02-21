@@ -5,6 +5,7 @@ public class MarathonResult {
     public int totalMaps;
     public int completed;
     public int gaveUp;
+    public int terminated;
     public int totalSteps;
     public int totalOptimalSteps;
 

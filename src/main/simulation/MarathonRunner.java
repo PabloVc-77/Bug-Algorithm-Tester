@@ -107,8 +107,10 @@ public class MarathonRunner {
             result.completed++;
             result.totalSteps += bug1.getHistory().size();
             result.totalOptimalSteps += optimal;
-        } else {
+        } else if(bug1.hasGivenUp()){
             result.gaveUp++;
+        } else {
+            result.terminated++;
         }
 
         if (bug2 != null) {
