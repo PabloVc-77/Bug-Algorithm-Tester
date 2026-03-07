@@ -191,16 +191,63 @@ public class MapCreator extends JFrame {
         JPanel panel = new JPanel(new FlowLayout());
 
         JButton clearBtn = new JButton("Clear");
+        JButton saveBtn = new JButton("Save");
         JButton exitBtn = new JButton("Exit");
 
         clearBtn.addActionListener(e -> clearGrid());
 
+        saveBtn.addActionListener(e -> saveMap());
+
         exitBtn.addActionListener(e -> dispose());
 
         panel.add(clearBtn);
+        panel.add(saveBtn);
         panel.add(exitBtn);
 
         return panel;
+    }
+
+    private void saveMap() {
+
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Save Map");
+
+        int result = fileChooser.showSaveDialog(this);
+
+        if (result != JFileChooser.APPROVE_OPTION)
+            return;
+
+        java.io.File file = fileChooser.getSelectedFile();
+
+        try (java.io.PrintWriter writer = new java.io.PrintWriter(file)) {
+
+            writer.println(rows + " " + cols);
+
+            for (int r = 0; r < rows; r++) {
+
+                for (int c = 0; c < cols; c++) {
+
+                    char ch = '.';
+
+                    switch (grid[r][c]) {
+                        case EMPTY: ch = '.'; break;
+                        case WALL:  ch = '#'; break;
+                        case START: ch = 'S'; break;
+                        case GOAL:  ch = 'G'; break;
+                    }
+
+                    writer.print(ch);
+                }
+
+                writer.println();
+            }
+
+            JOptionPane.showMessageDialog(this, "Map saved successfully!");
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error saving map.");
+        }
     }
 
     private void handleClick(MouseEvent e) {

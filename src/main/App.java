@@ -16,6 +16,9 @@ import main.ui.ComparePanel;
 import main.ui.GridPanel;
 
 import java.awt.Point;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.Random;
 
 import javax.swing.JButton;
@@ -34,9 +37,24 @@ import main.ui.MarathonConsoleView;
 
 
 public class App {
-    private static final double OBS_PROB = 0.01;
     private static final int NORMAL_DELAY = 200;
     private static final int FAST_DELAY = 20;
+
+    private static final double OBS_PROB = loadObsProb();
+
+    private static double loadObsProb() {
+        try (BufferedReader br = new BufferedReader(new FileReader("config.txt"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (line.startsWith("OBS_PROB=")) {
+                    return Double.parseDouble(line.split("=")[1]);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return 0.10; // default value if file not found or error
+    }
 
     private static class RunConfig {
         RunMode mode;
@@ -145,6 +163,7 @@ public class App {
         System.out.println("  java main.App -d [-map <nameMap> | -seed <seed>]          |  Debug mode (visual)");
         System.out.println("  java main.App -c [-map <nameMap> | -seed <seed>]          |  Compare two bugs");
         System.out.println("  java main.App -m <amount> [-c (add comparation Mode)]     |  Marathon test mode");
+        System.out.println("  java main.App -b                                          |  Marathon test mode");
     }
 
     private static void runGuiMode(RunConfig config) {
