@@ -63,7 +63,8 @@ public class Bug2 extends AbstractBug {
         }
 
         // Leave obstacle if back on M-line closer to goal
-        if (onMLine(next) && distance(next, goal) < distance(hitPoint, goal)) {
+        // !!! Add seansing condition: If I see goal and no obstacle leave followingWall !!!
+        if ((onMLine(next) && distance(next, goal) < distance(hitPoint, goal)) || distance(goal, next) < 2) {
             followingWall = false;
             visitedStates.clear();
         }

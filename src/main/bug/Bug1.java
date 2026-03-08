@@ -1,13 +1,15 @@
 package main.bug;
 
 import java.awt.Point;
+import java.util.HashSet;
+import java.util.Set;
 
 public class Bug1 extends AbstractBug {
 
     private boolean followingWall = false;
     private Point hitPoint = null;
 
-    // 8 directions (clockwise)
+    // 8 directions clockwise
     private static final int[][] DIRS = {
         {1,0},   // E
         {1,1},   // SE
@@ -20,6 +22,9 @@ public class Bug1 extends AbstractBug {
     };
 
     private int wallDir = 0;
+
+    // loop detection
+    private Set<String> visitedStates = new HashSet<>();
 
     @Override
     protected Point moveTo(Point goal) {
@@ -34,11 +39,21 @@ public class Bug1 extends AbstractBug {
                 return next;
             }
 
-            // obstacle hit
+            // Hit obstacle → start wall following
             followingWall = true;
             hitPoint = current;
             wallDir = directionIndex(current, next);
+
+            visitedStates.clear();
         }
+
+        // Detect loop
+        String stateKey = current.x + "," + current.y + "," + wallDir;
+        if (visitedStates.contains(stateKey)) {
+            setState(BugState.GAVE_UP);
+            return current;
+        }
+        visitedStates.add(stateKey);
 
         Point next = followWall(current);
 
@@ -50,6 +65,7 @@ public class Bug1 extends AbstractBug {
         // Leave obstacle if back on M-line closer to goal
         if (onMLine(next) && distance(next, goal) < distance(hitPoint, goal)) {
             followingWall = false;
+            visitedStates.clear();
         }
 
         return next;
@@ -65,7 +81,6 @@ public class Bug1 extends AbstractBug {
 
     private Point followWall(Point p) {
 
-        // try directions rotating left around obstacle
         for (int i = 0; i < 8; i++) {
 
             int dir = (wallDir + 7 + i) % 8;
@@ -100,13 +115,11 @@ public class Bug1 extends AbstractBug {
 
         Point start = history.get(0);
 
-        double A = goal.y - start.y;
-        double B = start.x - goal.x;
-        double C = goal.x * start.y - start.x * goal.y;
+        double d1 = distance(start, p);
+        double d2 = distance(p, goal);
+        double d3 = distance(start, goal);
 
-        double dist = Math.abs(A * p.x + B * p.y + C) / Math.sqrt(A*A + B*B);
-
-        return dist < 0.5; // tolerance for grid
+        return Math.abs((d1 + d2) - d3) < 0.5;
     }
 
     private double distance(Point a, Point b) {
