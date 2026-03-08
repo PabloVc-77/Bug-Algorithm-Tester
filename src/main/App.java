@@ -163,7 +163,7 @@ public class App {
         System.out.println("  java main.App -d [-map <nameMap> | -seed <seed>]          |  Debug mode (visual)");
         System.out.println("  java main.App -c [-map <nameMap> | -seed <seed>]          |  Compare two bugs");
         System.out.println("  java main.App -m <amount> [-c (add comparation Mode)]     |  Marathon test mode");
-        System.out.println("  java main.App -b                                          |  Marathon test mode");
+        System.out.println("  java main.App -b                                          |  Build Map mode");
     }
 
     private static void runGuiMode(RunConfig config) {
